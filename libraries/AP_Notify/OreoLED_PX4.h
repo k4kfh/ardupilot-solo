@@ -27,6 +27,8 @@
 #define OREOLED_INSTANCE_ALL    0xff    // instance number to indicate all LEDs (used for set_rgb and set_macro)
 #define OREOLED_BRIGHT          0xff    // maximum brightness when flying (disconnected from usb)
 
+#define CUSTOM_HEADER_LENGTH    4       // number of bytes in the custom LED buffer that are used to identify the command
+
 class OreoLED_PX4 : public NotifyDevice
 {
 public:
@@ -50,20 +52,32 @@ private:
     // update_timer - called by scheduler and updates PX4 driver with commands
     void update_timer(void);
 
-    // set_rgb - set color as a combination of red, green and blue values for one or all LEDs
+    // set_rgb - set color as a combination of red, green and blue values for one or all LEDs, pattern defaults to solid color
     void set_rgb(uint8_t instance, uint8_t red, uint8_t green, uint8_t blue);
+
+    // set_rgb - set color as a combination of red, green and blue values for one or all LEDs, using the specified pattern
+    void set_rgb(uint8_t instance, enum oreoled_pattern pattern, uint8_t red, uint8_t green, uint8_t blue);
+
+    // set_rgb - set color as a combination of red, green and blue values for one or all LEDs, using the specified pattern and other parameters
+    void set_rgb(uint8_t instance, oreoled_pattern pattern, uint8_t red, uint8_t green, uint8_t blue,
+            uint8_t amplitude_red, uint8_t amplitude_green, uint8_t amplitude_blue,
+            uint16_t period, uint16_t phase_offset);
 
     // set_macro - set macro for one or all LEDs
     void set_macro(uint8_t instance, enum oreoled_macro macro);
 
-    // send_sync - force a syncronisation of the LEDs
-    void send_sync(void);
+    // send_sync - force a syncronisation of the all LED's
+    void send_sync();
+
+    // Clear the desired state
+    void clear_state(void);
 
     // oreo led modes (pattern, macro or rgb)
     enum oreoled_mode {
-        OREOLED_MODE_PATTERN,
+        OREOLED_MODE_NONE,
         OREOLED_MODE_MACRO,
         OREOLED_MODE_RGB,
+        OREOLED_MODE_RGB_EXTENDED,
         OREOLED_MODE_SYNC
     };
 
@@ -75,11 +89,28 @@ private:
         uint8_t red;
         uint8_t green;
         uint8_t blue;
+        uint8_t amplitude_red;
+        uint8_t amplitude_green;
+        uint8_t amplitude_blue;
+        uint16_t period;
+        int8_t repeat;
+        uint16_t phase_offset;
 
-        // operator==
-        inline bool operator==(const oreo_state &os) {
-           return ((os.mode==mode) && (os.pattern==pattern) && (os.macro==macro) && (os.red==red) && (os.green==green) && (os.blue==blue));
-        }
+        oreo_state();
+
+        void clear_state();
+
+        void send_sync();
+
+        void set_macro(oreoled_macro new_macro);
+
+        void set_rgb(enum oreoled_pattern new_pattern, uint8_t new_red, uint8_t new_green, uint8_t new_blue);
+
+        void set_rgb(enum oreoled_pattern new_pattern, uint8_t new_red, uint8_t new_green,
+                uint8_t new_blue, uint8_t new_amplitude_red, uint8_t new_amplitude_green, uint8_t new_amplitude_blue,
+                uint16_t new_period, uint16_t new_phase_offset);
+
+        bool operator==(const oreo_state &os);
     };
 
     // private members
